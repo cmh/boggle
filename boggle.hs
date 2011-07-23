@@ -1,7 +1,9 @@
 module Main
     where
 
---import Data.Set
+import Data.List (sortBy, intersect)
+import Control.Monad (liftM)
+--import Data.SetO
 
 data Board = Board
     { size :: Int
@@ -42,6 +44,15 @@ b4 = Board 4 "abcdefghijklmnop"
 
 num_pos = length . concat . possibles
 
+best_words = reverse . (sortBy compLength) . concat . possibles where
+    compLength a b = (length a) `compare` (length b)
+
+get_words :: IO [String]
+get_words = liftM lines (readFile "/usr/share/dict/words")
+
 main = do
-    print b4
-    print $ num_pos b4
+    print b3
+    words <- get_words
+    let boggles = best_words b3
+    let real_words = boggles `intersect` words
+    print $ take 20 $ real_words
