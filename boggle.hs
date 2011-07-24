@@ -3,6 +3,7 @@ module Main
 
 import Data.List (sortBy, intersect)
 import Control.Monad (liftM)
+import LetterTree
 --import Data.SetO
 
 data Board = Board
@@ -42,17 +43,22 @@ b2 = Board 2 "abcd"
 b3 = Board 3 "abcdefghi"
 b4 = Board 4 "abcdefghijklmnop"
 
+test = Board 3 "ertpsfaln"
+
 num_pos = length . concat . possibles
 
-best_words = reverse . (sortBy compLength) . concat . possibles where
+best_words = reverse . (sortBy compLength) . (filter ((> 3) . length)) . concat . possibles where
     compLength a b = (length a) `compare` (length b)
 
 get_words :: IO [String]
 get_words = liftM lines (readFile "/usr/share/dict/words")
 
-main = do
-    print b3
+print_solutions b = do
+    print b
+    print "SOLUTIONS"
     words <- get_words
-    let boggles = best_words b3
+    let boggles = best_words b
     let real_words = boggles `intersect` words
-    print $ take 20 $ real_words
+    print $ take 30 $ real_words
+
+main = print_solutions test
