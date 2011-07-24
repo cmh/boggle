@@ -1,10 +1,9 @@
 module Main
     where
 
-import Data.List (sortBy, intersect)
+import Data.List (sortBy, intersect, intersperse, nub)
 import Control.Monad (liftM)
 import LetterTree
---import Data.SetO
 
 data Board = Board
     { size :: Int
@@ -12,53 +11,56 @@ data Board = Board
     } deriving (Eq)
 
 instance Show Board where
-    show (Board n ps) = sn ++ " * " ++ sn ++ " board:" ++ (sb ps) where
+    show (Board n ps) = sn ++ " * " ++ sn ++ " board:" ++ hLine ++ (sb ps) ++ hLine where
         sn = show n
+        hLine = '\n' : replicate (2*n+1) '-'
         sb [] = ""
-        sb ps = "\n" ++ show (take n ps) ++ sb (drop n ps)
+        sb ps = "\n|" ++ (intersperse '|' $ take n ps) ++ '|' : sb (drop n ps)
 
---possibles :: Board ->
-possibles (Board n ps) = go 0 0 where
-    go i j | j == n && i == n = []
-           | i == n           = go 0 (j+1) 
-           | otherwise        = (wrds n ps i j []) : go (i+1) j
-
-wrds n ps i j locs | index `elem` locs                  = []
-                   | i < 0 || j < 0 || i >= n || j >= n = []
-                   | otherwise = [c] : (concatMap (map (c :)) $ filter (not . null) [w1, w2, w3, w4, w5, w6, w7, w8]) where
-    index = j * n + i
-    locs' = index : locs
-    c = ps !! index 
-    w1 = wrds n ps (i + 1) j locs'
-    w2 = wrds n ps (i - 1) j locs'
-    w3 = wrds n ps (i + 1) (j + 1) locs'
-    w4 = wrds n ps (i - 1) (j + 1) locs'
-    w5 = wrds n ps i  (j + 1) locs'
-    w6 = wrds n ps (i + 1) (j - 1) locs'
-    w7 = wrds n ps (i - 1) (j - 1) locs'
-    w8 = wrds n ps i (j - 1) locs'
+--Make better names for these things
+allWords b@(Board n s) letterTree = concatMap (wordsAt b) [0 .. (n*n-1)] where
+    wordsAt (Board n ps) loc = go "" [] (loc `mod` n) (loc `div` n) where
+        go soFar visited i j | index `elem` visited               = [] --already been to this square
+                             | i < 0 || j < 0 || i >= n || j >= n = [] --invalid location
+                             | query == None                      = [] --not a word and no more in chain
+                             | query == Prefix                    = moreWords
+                             | query == FullWord                  = word : moreWords where
+            index = j * n + i
+            char = ps !! index
+            word = soFar ++ [char]
+            query = LetterTree.lookup letterTree word
+            visited' = index : visited
+            --TODO, for the love of god make this better
+            moreWords = concat [w1, w2, w3, w4, w5, w6, w7, w8]
+            w1 = go word visited' (i + 1) j
+            w2 = go word visited' (i - 1) j
+            w3 = go word visited' (i + 1) (j + 1) 
+            w4 = go word visited' (i - 1) (j + 1) 
+            w5 = go word visited' i  (j + 1) 
+            w6 = go word visited' (i + 1) (j - 1) 
+            w7 = go word visited' (i - 1) (j - 1) 
+            w8 = go word visited' i (j - 1) 
 
 b1 = Board 1 "a"
 b2 = Board 2 "abcd"
 b3 = Board 3 "abcdefghi"
 b4 = Board 4 "abcdefghijklmnop"
+b5 = Board 5 "fdkrpvmerlksjdmepowrnckda"
 
 test = Board 3 "ertpsfaln"
 
-num_pos = length . concat . possibles
-
-best_words = reverse . (sortBy compLength) . (filter ((> 3) . length)) . concat . possibles where
+best_words :: Board -> LetterTree -> [String]
+best_words b lt = reverse . (sortBy compLength) . (filter ((> 3) . length)) . nub $ allWords b lt where
     compLength a b = (length a) `compare` (length b)
 
-get_words :: IO [String]
-get_words = liftM lines (readFile "/usr/share/dict/words")
+wordTree :: IO LetterTree
+wordTree = liftM (fromList . lines) (readFile "/usr/share/dict/words") 
 
-print_solutions b = do
-    print b
-    print "SOLUTIONS"
-    words <- get_words
-    let boggles = best_words b
-    let real_words = boggles `intersect` words
-    print $ take 30 $ real_words
+print_solutions board = do
+    print board
+    print "SOLUTIONS:"
+    wt <- wordTree
+    let bw = best_words board wt
+    putStrLn . unlines . (take 100) $ bw
 
-main = print_solutions test
+main = print_solutions b5
