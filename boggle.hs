@@ -3,6 +3,8 @@ module Main
 
 import Data.List (sortBy, intersect, intersperse, nub)
 import Control.Monad (liftM)
+import System.Directory (doesFileExist)
+import Data.Binary (encodeFile, decodeFile)
 import LetterTree
 
 data Board = Board
@@ -53,8 +55,24 @@ best_words :: Board -> LetterTree -> [String]
 best_words b lt = reverse . (sortBy compLength) . (filter ((> 3) . length)) . nub $ allWords b lt where
     compLength a b = (length a) `compare` (length b)
 
+createWordTreeFile :: IO ()
+createWordTreeFile = do
+	wordList <- readFile "/usr/share/dict/words"
+	let wordTree = (fromList . lines) wordList
+	encodeFile treeLocation wordTree
+
+treeLocation :: FilePath
+treeLocation = "/home/chris/.boggle/wordTree.bin"
+
 wordTree :: IO LetterTree
-wordTree = liftM (fromList . lines) (readFile "/usr/share/dict/words") 
+wordTree = do
+	wordTreeExists <- doesFileExist treeLocation
+	case wordTreeExists of
+		True -> decodeFile treeLocation
+		False -> do 
+			putStrLn $ "Creating wordTree in " ++ treeLocation
+			createWordTreeFile 
+			decodeFile treeLocation
 
 print_solutions board = do
     print board
