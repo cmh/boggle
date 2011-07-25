@@ -7,6 +7,7 @@ import System.Directory (doesFileExist)
 import Data.Binary (encodeFile, decodeFile)
 import LetterTree
 import System.Random
+import System.CPUTime
 
 data Board = Board
     { size :: Int
@@ -85,12 +86,18 @@ wordTree = do
 solveBoards = do
     wt <- wordTree
     putStrLn $ "Generating boards"
-    boards <- generateBoards 4 20000
+    let n = 50000
+    boards <- generateBoards 4 n
     let len = length boards
-    putStrLn $ "Generated boards * " ++ show len
-    let s = (sum . (map (flip num_words wt))) boards
-    putStrLn $ "Solved boards"
+    putStrLn $ "Generated " ++ show len ++ " random boards"
+    start <- getCPUTime
+    let !s = (sum . (map (flip num_words wt))) boards
+    finish <- getCPUTime
     putStrLn $ show s ++ " total words"
+    let runTime = (finish - start) `div` 10^9
+    putStrLn $ "Solved " ++ show n ++ " boards in " ++ show runTime ++ "ms"
+    let rate = fromIntegral (n * 1000) / (fromIntegral runTime)
+    putStrLn $ "Rate of " ++ show rate ++ "b/s"
 
 print_solutions board = do
     print board
@@ -102,7 +109,7 @@ print_solutions board = do
     putStrLn . unlines . (take 100) $ bw
 
 {-main = do-}
-	{-board <- randomBoard 50-}
-	{-print_solutions board-}
+    {-board <- randomBoard 50-}
+    {-print_solutions board-}
 
 main = solveBoards
