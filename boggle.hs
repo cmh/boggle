@@ -34,16 +34,8 @@ allWords b@(Board n s) letterTree = concatMap (wordsAt b) [0 .. (n*n-1)] where
             word = soFar ++ [char]
             query = LetterTree.lookup letterTree word
             visited' = index : visited
-            --TODO, for the love of god make this better
-            moreWords = concat [w1, w2, w3, w4, w5, w6, w7, w8]
-            w1 = go word visited' (i + 1) j
-            w2 = go word visited' (i - 1) j
-            w3 = go word visited' (i + 1) (j + 1) 
-            w4 = go word visited' (i - 1) (j + 1) 
-            w5 = go word visited' i  (j + 1) 
-            w6 = go word visited' (i + 1) (j - 1) 
-            w7 = go word visited' (i - 1) (j - 1) 
-            w8 = go word visited' i (j - 1) 
+            moreWords = concatMap (uncurry (go word visited')) 
+				[(i+1, j), (i-1, j), (i+1, j-1), (i-1, j+1), (i, j+1), (i+1, j-1), (i-1,j-1), (i, j-1)]
 
 b4 = Board 4 "abcdefghijklmnop"
 b5 = Board 5 "fdkrpvmerlksjdmepowrnckda"
