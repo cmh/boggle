@@ -1,8 +1,9 @@
+{-# LANGUAGE BangPatterns #-}
 module Main
     where
 
 import Data.List (sortBy, intersect, intersperse, nub, (\\))
-import qualified Data.Map as Map
+import qualified Data.IntMap as Map
 import Control.Monad (liftM)
 import System.Directory (doesFileExist)
 import Data.Binary (encodeFile, decodeFile)
@@ -12,8 +13,8 @@ import System.CPUTime
 import Data.Maybe (fromJust)
 
 data Board = Board
-    { size :: Int
-    , board :: [Char]
+    { size :: !Int
+    , board :: ![Char]
     } deriving (Eq)
 
 {-data Cell = Cell-}
@@ -22,19 +23,22 @@ data Board = Board
     {-, neighbours :: [Cell] }-}
 
 data Cell = Cell
-    { char :: Char
-    , neighbours :: [ (Int, Int) ] } 
+    { char :: !Char
+    , neighbours :: ![Int] } 
     deriving (Show, Eq)
 
-type BoardNeighbours = Map.Map (Int, Int) Cell
+--This is probably slow due to non integer keys
+type BoardNeighbours = Map.IntMap Cell
 
 fromBoard :: Board -> BoardNeighbours
 fromBoard (Board n ps) = Map.fromList $ map (makeCell ps) [0 .. (n*n-1)] where
-    makeCell ps k = ((i, j), Cell c ns) where
+    makeCell ps k = (k, Cell c ns) where
         c = ps !! k
         (j, i) = k `divMod` n
         ns = makeNeighbours i j
-        makeNeighbours i j = filter (\(x, y) -> (x >= 0 && y >= 0 && x < n && y < n)) [(i+1, j), (i-1, j), (i+1, j-1), (i-1, j-1), (i, j-1), (i-1,j+1), (i, j+1), (i+1, j+1)]
+        makeNeighbours i j = map (\(i, j) -> j*n + i) $ 
+                             filter (\(x, y) -> (x >= 0 && y >= 0 && x < n && y < n)) $
+                             [(i+1, j), (i-1, j), (i+1, j-1), (i-1, j-1), (i, j-1), (i-1,j+1), (i, j+1), (i+1, j+1)]
 
 instance Show Board where
     show (Board n ps) = sn ++ " * " ++ sn ++ " board:" ++ hLine ++ (sb ps) ++ hLine where
@@ -44,16 +48,17 @@ instance Show Board where
         sb ps = "\n|" ++ (intersperse '|' $ take n ps) ++ '|' : sb (drop n ps)
 
 --Make better names for these things, could easily make this concurrent
-allWords b letterTree = allWords' b (fromBoard b) where 
-    allWords' b@(Board n ps) bn = concatMap (wordsAt b) (zip [0 .. (n-1)] [0 .. (n-1)]) where
+allWords b letterTree = allWords' b boardAnnotations where 
+    boardAnnotations = {-# SCC "BoardAnnotations" #-} (fromBoard b)
+    allWords' b@(Board n ps) bn = concatMap (wordsAt b) [0 .. (n * n - 1)] where
         wordsAt (Board n ps) loc = go "" [] loc where
-            go soFar visited loc | query == None     = [] --not a word and no more in chain
-                                    | query == Prefix   = moreWords
-                                    | query == FullWord = word : moreWords where
-                cell@(Cell c ns) = fromJust $ Map.lookup loc bn
-                word = soFar ++ [c]
-                query = LetterTree.lookup letterTree word
-                ns' = ns \\ visited 
+            go !soFar visited loc | query == None     = [] --not a word and no more in chain
+                                  | query == Prefix   = moreWords
+                                  | query == FullWord = word : moreWords where
+                cell@(Cell c ns) = {-# SCC "CellLookup" #-} fromJust $ Map.lookup loc bn
+                word = {-# SCC "WordAppend" #-} soFar ++ [c]
+                query = {-# SCC "LTlookup" #-} LetterTree.lookup letterTree word
+                ns' = {-# SCC "RemoveVisited" #-} ns \\ visited 
                 moreWords = concatMap (go word (loc : visited)) ns'
 
 b4 = Board 4 "abcdefghijklmnop"
