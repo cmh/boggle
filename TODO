@@ -1,0 +1,4 @@
+ * Use a better wordlist - /usr/share/dict/words has a lot of small nonwords which may be slowing down the code
+ * Investigate faster trie lookups, using hashtable instead of Data.Map may prove effective. There may be other approaches.
+ * Profile the allWords function, see if it can be improved with strictness annotations of faster lookups within the visited list and board character list. Use a fast array type for these
+ * See if board preprocessing can be done to reduce the amount of recalculation in visiting neighbours out of bound or neighbours already visited. A more complex board datatype may be useful here.
