@@ -69,5 +69,3 @@ fromList [] = topNode
 fromList (s:ss) = insert (fromList ss) s
 
 testTree = insert (insert (insert topNode "ape") "apple") "bee"
-testTree2 = insert topNode "abcd"
-testTree3 = insert testTree2 "aefg"

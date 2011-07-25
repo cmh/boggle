@@ -17,6 +17,7 @@ Cabal-version:       >=1.2
 
 Executable boggle
     Main-is: boggle.hs
-    Build-depends: base, containers
+    Build-depends: base, containers, random, binary, directory
     Other-modules: LetterTree
+    ghc-options: -O2
   -- Build-tools:         

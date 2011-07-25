@@ -85,7 +85,7 @@ wordTree = do
 solveBoards = do
     wt <- wordTree
     putStrLn $ "Generating boards"
-    boards <- generateBoards 4 100000
+    boards <- generateBoards 4 20000
     let len = length boards
     putStrLn $ "Generated boards * " ++ show len
     let s = (sum . (map (flip num_words wt))) boards
@@ -101,8 +101,8 @@ print_solutions board = do
     putStrLn $ "Best 100 solutions\n"
     putStrLn . unlines . (take 100) $ bw
 
-main = do
-	board <- randomBoard 50
-	print_solutions board
+{-main = do-}
+	{-board <- randomBoard 50-}
+	{-print_solutions board-}
 
-{-main = solveBoards-}
+main = solveBoards
