@@ -1,18 +1,40 @@
 module Main
     where
 
-import Data.List (sortBy, intersect, intersperse, nub)
+import Data.List (sortBy, intersect, intersperse, nub, (\\))
+import qualified Data.Map as Map
 import Control.Monad (liftM)
 import System.Directory (doesFileExist)
 import Data.Binary (encodeFile, decodeFile)
 import LetterTree
 import System.Random
 import System.CPUTime
+import Data.Maybe (fromJust)
 
 data Board = Board
     { size :: Int
     , board :: [Char]
     } deriving (Eq)
+
+{-data Cell = Cell-}
+    {-{ id :: Int-}
+    {-, char :: Char-}
+    {-, neighbours :: [Cell] }-}
+
+data Cell = Cell
+    { char :: Char
+    , neighbours :: [ (Int, Int) ] } 
+    deriving (Show, Eq)
+
+type BoardNeighbours = Map.Map (Int, Int) Cell
+
+fromBoard :: Board -> BoardNeighbours
+fromBoard (Board n ps) = Map.fromList $ map (makeCell ps) [0 .. (n*n-1)] where
+    makeCell ps k = ((i, j), Cell c ns) where
+        c = ps !! k
+        (j, i) = k `divMod` n
+        ns = makeNeighbours i j
+        makeNeighbours i j = filter (\(x, y) -> (x >= 0 && y >= 0 && x < n && y < n)) [(i+1, j), (i-1, j), (i+1, j-1), (i-1, j-1), (i, j-1), (i-1,j+1), (i, j+1), (i+1, j+1)]
 
 instance Show Board where
     show (Board n ps) = sn ++ " * " ++ sn ++ " board:" ++ hLine ++ (sb ps) ++ hLine where
@@ -22,20 +44,17 @@ instance Show Board where
         sb ps = "\n|" ++ (intersperse '|' $ take n ps) ++ '|' : sb (drop n ps)
 
 --Make better names for these things, could easily make this concurrent
-allWords b@(Board n s) letterTree = concatMap (wordsAt b) [0 .. (n*n-1)] where
-    wordsAt (Board n ps) loc = go "" [] (loc `mod` n) (loc `div` n) where
-        go soFar visited i j | index `elem` visited               = [] --already been to this square
-                             | i < 0 || j < 0 || i >= n || j >= n = [] --invalid location
-                             | query == None                      = [] --not a word and no more in chain
-                             | query == Prefix                    = moreWords
-                             | query == FullWord                  = word : moreWords where
-            index = j * n + i
-            char = ps !! index
-            word = soFar ++ [char]
-            query = LetterTree.lookup letterTree word
-            visited' = index : visited
-            moreWords = concatMap (uncurry (go word visited')) 
-				[(i+1, j), (i-1, j), (i+1, j-1), (i-1, j+1), (i, j+1), (i+1, j-1), (i-1,j-1), (i, j-1)]
+allWords b letterTree = allWords' b (fromBoard b) where 
+    allWords' b@(Board n ps) bn = concatMap (wordsAt b) (zip [0 .. (n-1)] [0 .. (n-1)]) where
+        wordsAt (Board n ps) loc = go "" [] loc where
+            go soFar visited loc | query == None     = [] --not a word and no more in chain
+                                    | query == Prefix   = moreWords
+                                    | query == FullWord = word : moreWords where
+                cell@(Cell c ns) = fromJust $ Map.lookup loc bn
+                word = soFar ++ [c]
+                query = LetterTree.lookup letterTree word
+                ns' = ns \\ visited 
+                moreWords = concatMap (go word (loc : visited)) ns'
 
 b4 = Board 4 "abcdefghijklmnop"
 b5 = Board 5 "fdkrpvmerlksjdmepowrnckda"
