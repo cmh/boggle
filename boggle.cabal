@@ -16,7 +16,13 @@ Cabal-version:       >=1.2
 Executable boggle
     Main-is: boggleMain.hs
     --TODO, make explicit the version requirements
-    Build-depends: base, containers, random, binary, directory, cmdargs, filepath 
-    Other-modules: LetterTree, Board
+    Build-depends: base >= 4,
+                   containers,
+                   random,
+                   binary,
+                   directory,
+                   cmdargs,
+                   filepath
+    Other-modules: Trie, Board
     ghc-options: -O2
   -- Build-tools:         
