@@ -5,7 +5,7 @@ module Main
 import System.Console.CmdArgs
 import System.Environment (getArgs, withArgs)
 import System.CPUTime
-import System.Directory (doesFileExist, getHomeDirectory)
+import System.Directory (doesFileExist, getHomeDirectory, createDirectory)
 import System.Exit
 import System.FilePath (joinPath)
 
@@ -13,19 +13,24 @@ import Data.Binary (encodeFile, decodeFile)
 
 import Control.Monad (when)
 
+import Paths_boggle
+
 import Board
 import Trie
 
 treeLocation :: IO FilePath
 treeLocation = do
-    homeDir <- getHomeDirectory
-    return $ joinPath[homeDir,  ".boggle", "wordTree.bin"]
+    dataDir <- getDataDir
+    return $ joinPath[dataDir, "wordTree.bin"]
+
 dictLocation :: FilePath --Currently linux only, should include cabal data file of dict
 dictLocation = "/usr/share/dict/words"
 
 --Create a binarised version of the dictionary tree and store at cache location
 createWordTreeFile :: IO ()
 createWordTreeFile = do
+    dataDir <- getDataDir
+    createDirectory dataDir
     wordList <- readFile dictLocation
     let wordTree = (fromList . lines) wordList
     tLoc <- treeLocation
@@ -41,7 +46,7 @@ wordTree = do
     case wordTreeExists of
         True -> decodeFile tLoc
         False -> do 
-            putStrLn $ "Creating wordTree in " ++ tLoc
+            putStrLn $ "First time running boggle - creating binarised wordTree in " ++ tLoc
             createWordTreeFile 
             decodeFile tLoc
 
@@ -81,12 +86,12 @@ profile :: MyOptions
 profile = Profile
     {num = def &= help "Number of boards to use in profiling" &= typ "INT"
     ,size = def &= help "size of the square boards" &= typ "INT" }
-    &= details [ "Example:", "boggle profile 4 20000" ]
+    &= details [ "Example:", "boggle profile -s4 -n20000" ]
 
 oneBoard :: MyOptions
 oneBoard = OneBoard 
     {size = def &= help "Generate a random board of size n and print best solutions" &= typ "INT" }
-    &= details [ "Example:", "boggle oneboard 10" ]
+    &= details [ "Example:", "boggle oneboard -s10" ]
 
 myModes :: Mode (CmdArgs MyOptions)
 myModes = cmdArgsMode $ modes [profile, oneBoard]
