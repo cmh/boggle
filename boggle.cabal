@@ -5,8 +5,6 @@ Name:                boggle
 Version:             0.1
 -- Synopsis:            
 -- Description:         
-License:             BSD3
-License-file:        LICENSE
 Author:              Chris Holdsworth
 Maintainer:          chrisholdsworth@gmail.com
 -- Copyright:           
@@ -16,8 +14,9 @@ Build-type:          Simple
 Cabal-version:       >=1.2
 
 Executable boggle
-    Main-is: boggle.hs
-    Build-depends: base, containers, random, binary, directory
-    Other-modules: LetterTree
+    Main-is: boggleMain.hs
+    --TODO, make explicit the version requirements
+    Build-depends: base, containers, random, binary, directory, cmdargs, filepath 
+    Other-modules: LetterTree, Board
     ghc-options: -O2
   -- Build-tools:         
