@@ -7,8 +7,9 @@ import qualified Data.IntMap as Map
 import Control.Monad (liftM)
 import System.Random
 import Data.Maybe (fromJust)
+import Data.Ord (comparing)
 
-import LetterTree
+import Trie
 
 data Cell = Cell
     { char :: Char
@@ -54,7 +55,7 @@ allWords b letterTree = allWords' b boardAnnotations where
                                   | query == FullWord = word : moreWords where
                 cell@(Cell c ns) = {-# SCC "CellLookup" #-} fromJust $ Map.lookup loc bn --Vector instead of map
                 word = {-# SCC "WordAppend" #-} soFar ++ [c] --Use a bytestring
-                query = {-# SCC "LTlookup" #-} LetterTree.lookup letterTree word --Bytestring trie
+                query = {-# SCC "LTlookup" #-} Trie.lookup letterTree word --Bytestring trie
                 ns' = {-# SCC "RemoveVisited" #-} ns `diff` visited  --Better dataStrucutre 
                 visited' = {-# SCC "NewVisited" #-} ins loc visited  --Could just use a vector
                 moreWords = concatMap (go word visited') ns'
@@ -85,10 +86,10 @@ generateBoards :: Int -> Int -> IO [Board]
 generateBoards size n = mapM randomBoard (replicate n size)
 
 --Utility functions to extract num of solution and best solutions
-bestWords :: Board -> LetterTree -> [String]
+bestWords :: Board -> Trie -> [String]
 bestWords b lt = reverse . sortBy compLength . nub . filter ((> 3) . length) $ allWords b lt where
-    compLength = Data.Ord.comparing length
+    compLength = comparing length
 
-numWords :: Board -> LetterTree -> Int
+--numWords :: Board -> Trie -> Int
 numWords b lt = length . nub . filter ((> 3) . length) $ allWords b lt 
 
